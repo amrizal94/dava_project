@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 import os
@@ -19,4 +20,11 @@ async def get_db() -> AsyncSession:
 
 async def init_db():
     async with engine.begin() as conn:
+        # Create PostgreSQL ENUM type safely — no error if already exists
+        await conn.execute(text(
+            "DO $$ BEGIN "
+            "  CREATE TYPE lightmode AS ENUM ('auto', 'manual'); "
+            "EXCEPTION WHEN duplicate_object THEN null; "
+            "END $$"
+        ))
         await conn.run_sync(Base.metadata.create_all)

@@ -51,7 +51,7 @@ class DeviceSettings(Base):
     __tablename__ = "device_settings"
 
     device_mac: Mapped[str] = mapped_column(ForeignKey("devices.mac_address", ondelete="CASCADE"), primary_key=True)
-    light_mode: Mapped[LightMode] = mapped_column(Enum(LightMode), default=LightMode.auto)
+    light_mode: Mapped[LightMode] = mapped_column(Enum(LightMode, name='lightmode', create_type=False), default=LightMode.auto)
     light_brightness: Mapped[int] = mapped_column(Integer, default=100)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
