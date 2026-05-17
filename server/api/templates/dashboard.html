@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Dava Monitoring{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <p class="subtitle">Monitoring {{ devices|length }} device{% if devices|length != 1 %}s{% endif %}</p>
+</div>
+
+{% if not devices %}
+<div class="empty-state">
+  <p>Belum ada device terdaftar.</p>
+  <p class="hint">Device ESP32 akan otomatis terdaftar saat pertama kali terhubung via MQTT.</p>
+</div>
+{% else %}
+<div class="device-grid" id="device-grid">
+  {% for device in devices %}
+  <a href="/device/{{ device.mac_address }}" class="device-card {% if device.is_online %}online{% else %}offline{% endif %}" data-mac="{{ device.mac_address }}">
+    <div class="card-header">
+      <span class="device-name">{{ device.alias or device.mac_address }}</span>
+      <span class="badge {% if device.is_online %}badge-online{% else %}badge-offline{% endif %}">
+        {{ "Online" if device.is_online else "Offline" }}
+      </span>
+    </div>
+    <div class="card-location">{{ device.location or "—" }}</div>
+    <div class="card-meta">
+      <span>MAC: {{ device.mac_address }}</span>
+      {% if device.last_seen %}
+      <span>Terakhir: <span class="time-ago" data-ts="{{ device.last_seen.isoformat() }}"></span></span>
+      {% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Update time-ago labels
+  function updateTimeAgo() {
+    document.querySelectorAll('.time-ago').forEach(el => {
+      const ts = new Date(el.dataset.ts);
+      const diff = Math.floor((Date.now() - ts) / 1000);
+      if (diff < 60) el.textContent = diff + 'd lalu';
+      else if (diff < 3600) el.textContent = Math.floor(diff/60) + 'm lalu';
+      else el.textContent = Math.floor(diff/3600) + 'j lalu';
+    });
+  }
+  updateTimeAgo();
+  setInterval(updateTimeAgo, 10000);
+
+  // SSE: update online/offline badge on dashboard cards
+  window.__sseHandlers = window.__sseHandlers || [];
+  window.__sseHandlers.push(function(ev) {
+    const card = document.querySelector(`.device-card[data-mac="${ev.mac}"]`);
+    if (!card) return;
+    if (ev.event === 'device_online' || ev.event === 'telemetry' || ev.event === 'status') {
+      card.classList.remove('offline');
+      card.classList.add('online');
+      const badge = card.querySelector('.badge');
+      if (badge) { badge.textContent = 'Online'; badge.className = 'badge badge-online'; }
+    }
+  });
+</script>
+{% endblock %}

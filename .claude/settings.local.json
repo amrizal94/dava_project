@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\KK\\\\OneDrive\\\\Documents\\\\Project\\\\echo_alert\" -Depth 1 | Select-Object Name, @{N=\"Type\";E={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\KK\\\\OneDrive\\\\Documents\\\\Project\\\\aapanel\" -Depth 1 | Select-Object Name, @{N=\"Type\";E={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(gh repo *)",
+      "PowerShell(New-Item *)"
+    ]
+  }
+}

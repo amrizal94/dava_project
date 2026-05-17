@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}{{ device.alias or device.mac_address }} — Dava Monitoring{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="/" class="back-link">← Dashboard</a>
+  <div class="header-row">
+    <h1 id="device-alias">{{ device.alias or device.mac_address }}</h1>
+    <span class="badge {% if device.is_online %}badge-online{% else %}badge-offline{% endif %}" id="status-badge">
+      {{ "Online" if device.is_online else "Offline" }}
+    </span>
+  </div>
+  <p class="subtitle">{{ device.location or "Lokasi tidak diatur" }} &bull; MAC: {{ device.mac_address }}</p>
+</div>
+
+<!-- Edit device info -->
+<details class="settings-panel">
+  <summary>Edit Informasi Device</summary>
+  <form id="edit-form" class="edit-form">
+    <label>Nama / Alias
+      <input type="text" id="input-alias" value="{{ device.alias or '' }}" placeholder="Nama device" />
+    </label>
+    <label>Lokasi
+      <input type="text" id="input-location" value="{{ device.location or '' }}" placeholder="Ruangan / lokasi" />
+    </label>
+    <button type="submit" class="btn btn-primary">Simpan</button>
+  </form>
+</details>
+
+<!-- Sensor cards row -->
+<div class="sensor-grid" id="sensor-grid">
+  <div class="sensor-card" id="card-temp-in">
+    <div class="sensor-label">Suhu Indoor</div>
+    <div class="sensor-value" id="val-temp-in">—</div>
+    <div class="sensor-unit">°C</div>
+  </div>
+  <div class="sensor-card" id="card-temp-out">
+    <div class="sensor-label">Suhu Outdoor</div>
+    <div class="sensor-value" id="val-temp-out">—</div>
+    <div class="sensor-unit">°C</div>
+  </div>
+  <div class="sensor-card" id="card-lux">
+    <div class="sensor-label">Intensitas Cahaya</div>
+    <div class="sensor-value" id="val-lux">—</div>
+    <div class="sensor-unit">lux</div>
+  </div>
+  <div class="sensor-card" id="card-power-status">
+    <div class="sensor-label">Status Listrik</div>
+    <div class="sensor-value" id="val-power-status">—</div>
+  </div>
+</div>
+
+<!-- PZEM cards -->
+<div class="sensor-grid" id="pzem-grid">
+  <div class="sensor-card">
+    <div class="sensor-label">Tegangan</div>
+    <div class="sensor-value" id="val-voltage">—</div>
+    <div class="sensor-unit">V</div>
+  </div>
+  <div class="sensor-card">
+    <div class="sensor-label">Arus</div>
+    <div class="sensor-value" id="val-current">—</div>
+    <div class="sensor-unit">A</div>
+  </div>
+  <div class="sensor-card">
+    <div class="sensor-label">Daya</div>
+    <div class="sensor-value" id="val-power">—</div>
+    <div class="sensor-unit">W</div>
+  </div>
+  <div class="sensor-card">
+    <div class="sensor-label">Frekuensi</div>
+    <div class="sensor-value" id="val-frequency">—</div>
+    <div class="sensor-unit">Hz</div>
+  </div>
+  <div class="sensor-card">
+    <div class="sensor-label">Power Factor</div>
+    <div class="sensor-value" id="val-pf">—</div>
+  </div>
+</div>
+
+<!-- Light control panel -->
+<div class="light-panel" id="light-panel">
+  <h2>Kontrol Lampu</h2>
+  <div class="light-controls">
+    <div class="mode-toggle">
+      <label class="toggle-label">
+        <input type="checkbox" id="mode-switch"
+          {% if settings and settings.light_mode.value == 'manual' %}checked{% endif %} />
+        <span class="toggle-track">
+          <span class="toggle-thumb"></span>
+        </span>
+        <span id="mode-label">{{ "Manual" if settings and settings.light_mode.value == "manual" else "Auto" }}</span>
+      </label>
+    </div>
+    <div class="brightness-control" id="brightness-control"
+         style="{{ '' if settings and settings.light_mode.value == 'manual' else 'display:none' }}">
+      <label>Kecerahan: <span id="brightness-display">{{ settings.light_brightness if settings else 100 }}%</span></label>
+      <input type="range" id="brightness-slider" min="1" max="100"
+             value="{{ settings.light_brightness if settings else 100 }}" />
+      <button class="btn btn-primary" id="btn-apply-brightness">Terapkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="charts-section">
+  <h2>Historis 24 Jam</h2>
+  <div class="chart-row">
+    <div class="chart-box">
+      <canvas id="chart-temp"></canvas>
+    </div>
+    <div class="chart-box">
+      <canvas id="chart-power"></canvas>
+    </div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-box">
+      <canvas id="chart-lux"></canvas>
+    </div>
+    <div class="chart-box">
+      <canvas id="chart-elec"></canvas>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MAC = "{{ device.mac_address }}";
+
+// ── Load initial data ──────────────────────────────────────────
+let chartTemp, chartPower, chartLux, chartElec;
+let labels = [], tempIn = [], tempOut = [], lux = [], volt = [], curr = [], pwr = [];
+
+function fmt(v, dec=1) { return v != null ? Number(v).toFixed(dec) : '—'; }
+
+function updateCards(d) {
+  document.getElementById('val-temp-in').textContent = fmt(d.temp_indoor);
+  document.getElementById('val-temp-out').textContent = fmt(d.temp_outdoor);
+  document.getElementById('val-lux').textContent = fmt(d.lux, 0);
+  const ps = document.getElementById('val-power-status');
+  if (d.power_status != null) {
+    ps.textContent = d.power_status ? 'ON' : 'OFF';
+    ps.style.color = d.power_status ? '#22c55e' : '#ef4444';
+  }
+  document.getElementById('val-voltage').textContent = fmt(d.voltage);
+  document.getElementById('val-current').textContent = fmt(d.current, 2);
+  document.getElementById('val-power').textContent = fmt(d.power, 0);
+  document.getElementById('val-frequency').textContent = fmt(d.frequency);
+  document.getElementById('val-pf').textContent = fmt(d.power_factor, 2);
+}
+
+function initCharts() {
+  const opts = (label, datasets) => ({
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, animation: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 8, maxRotation: 0 } },
+      }
+    }
+  });
+
+  chartTemp = new Chart(document.getElementById('chart-temp'), opts('Suhu', [
+    { label: 'Indoor (°C)', data: tempIn, borderColor: '#f97316', tension: 0.3, pointRadius: 2 },
+    { label: 'Outdoor (°C)', data: tempOut, borderColor: '#3b82f6', tension: 0.3, pointRadius: 2 },
+  ]));
+
+  chartPower = new Chart(document.getElementById('chart-power'), opts('Daya', [
+    { label: 'Daya (W)', data: pwr, borderColor: '#8b5cf6', tension: 0.3, pointRadius: 2, fill: true, backgroundColor: 'rgba(139,92,246,0.1)' },
+  ]));
+
+  chartLux = new Chart(document.getElementById('chart-lux'), opts('Cahaya', [
+    { label: 'Lux', data: lux, borderColor: '#eab308', tension: 0.3, pointRadius: 2, fill: true, backgroundColor: 'rgba(234,179,8,0.1)' },
+  ]));
+
+  chartElec = new Chart(document.getElementById('chart-elec'), opts('Listrik', [
+    { label: 'Tegangan (V)', data: volt, borderColor: '#10b981', tension: 0.3, pointRadius: 2 },
+    { label: 'Arus (A)', data: curr, borderColor: '#ef4444', tension: 0.3, pointRadius: 2, yAxisID: 'y1' },
+  ]));
+  chartElec.options.scales.y1 = { position: 'right', grid: { drawOnChartArea: false } };
+  chartElec.update();
+}
+
+function pushReading(r) {
+  const t = new Date(r.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  labels.push(t); tempIn.push(r.temp_indoor); tempOut.push(r.temp_outdoor);
+  lux.push(r.lux); volt.push(r.voltage); curr.push(r.current); pwr.push(r.power);
+  const MAX = 144; // ~24h at 10min interval
+  if (labels.length > MAX) {
+    [labels, tempIn, tempOut, lux, volt, curr, pwr].forEach(a => a.shift());
+  }
+  [chartTemp, chartPower, chartLux, chartElec].forEach(c => c && c.update('none'));
+  updateCards(r);
+}
+
+async function loadHistory() {
+  const res = await fetch(`/api/devices/${MAC}/readings?limit=144`);
+  const data = await res.json();
+  data.forEach(r => {
+    const t = new Date(r.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    labels.push(t); tempIn.push(r.temp_indoor); tempOut.push(r.temp_outdoor);
+    lux.push(r.lux); volt.push(r.voltage); curr.push(r.current); pwr.push(r.power);
+  });
+  if (data.length) updateCards(data[data.length - 1]);
+  initCharts();
+}
+
+loadHistory();
+
+// ── SSE handler ────────────────────────────────────────────────
+window.__sseHandlers = window.__sseHandlers || [];
+window.__sseHandlers.push(function(ev) {
+  if (ev.mac !== MAC) return;
+  if (ev.event === 'telemetry') {
+    pushReading(ev.data);
+    document.getElementById('status-badge').textContent = 'Online';
+    document.getElementById('status-badge').className = 'badge badge-online';
+  }
+  if (ev.event === 'device_online' || ev.event === 'status') {
+    document.getElementById('status-badge').textContent = 'Online';
+    document.getElementById('status-badge').className = 'badge badge-online';
+  }
+});
+
+// ── Edit device ───────────────────────────────────────────────
+document.getElementById('edit-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const alias = document.getElementById('input-alias').value;
+  const location = document.getElementById('input-location').value;
+  const res = await fetch(`/api/devices/${MAC}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ alias, location }),
+  });
+  if (res.ok) {
+    const d = await res.json();
+    document.getElementById('device-alias').textContent = d.alias;
+    document.querySelector('.settings-panel').removeAttribute('open');
+  }
+});
+
+// ── Light control ─────────────────────────────────────────────
+const modeSwitch = document.getElementById('mode-switch');
+const brightnessControl = document.getElementById('brightness-control');
+const modeLabel = document.getElementById('mode-label');
+const slider = document.getElementById('brightness-slider');
+const brightnessDisplay = document.getElementById('brightness-display');
+
+modeSwitch.addEventListener('change', async () => {
+  const isManual = modeSwitch.checked;
+  modeLabel.textContent = isManual ? 'Manual' : 'Auto';
+  brightnessControl.style.display = isManual ? '' : 'none';
+  if (!isManual) {
+    await fetch(`/api/devices/${MAC}/light`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'auto' }),
+    });
+  }
+});
+
+slider.addEventListener('input', () => {
+  brightnessDisplay.textContent = slider.value + '%';
+});
+
+document.getElementById('btn-apply-brightness').addEventListener('click', async () => {
+  await fetch(`/api/devices/${MAC}/light`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'manual', brightness: parseInt(slider.value) }),
+  });
+});
+</script>
+{% endblock %}

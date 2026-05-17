@@ -1,0 +1,208 @@
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #334155;
+  --border: #475569;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --accent: #3b82f6;
+  --green: #22c55e;
+  --red: #ef4444;
+  --yellow: #eab308;
+  --radius: 10px;
+  --gap: 1rem;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Navbar ──────────────────────────────────────── */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.sse-status { font-size: 1.2rem; color: var(--red); transition: color .3s; }
+.sse-status.connected { color: var(--green); }
+
+/* ── Layout ──────────────────────────────────────── */
+.container { max-width: 1200px; margin: 0 auto; padding: 1.5rem var(--gap); }
+
+.page-header { margin-bottom: 1.5rem; }
+.page-header h1 { font-size: 1.6rem; margin-bottom: .25rem; }
+.subtitle { color: var(--text-muted); font-size: .9rem; }
+
+.header-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .25rem; }
+
+.back-link { color: var(--accent); text-decoration: none; font-size: .9rem; display: inline-block; margin-bottom: .5rem; }
+.back-link:hover { text-decoration: underline; }
+
+/* ── Badges ──────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: .2rem .6rem;
+  border-radius: 99px;
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .03em;
+}
+.badge-online { background: rgba(34,197,94,.15); color: var(--green); }
+.badge-offline { background: rgba(239,68,68,.12); color: var(--red); }
+
+/* ── Device grid (dashboard) ─────────────────────── */
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--gap);
+}
+
+.device-card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color .2s, transform .15s;
+}
+.device-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.device-card.online { border-left: 3px solid var(--green); }
+.device-card.offline { border-left: 3px solid var(--red); opacity: .75; }
+
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
+.device-name { font-weight: 600; }
+.card-location { color: var(--text-muted); font-size: .85rem; margin-bottom: .6rem; }
+.card-meta { display: flex; flex-direction: column; gap: .15rem; font-size: .75rem; color: var(--text-muted); }
+
+/* ── Sensor grid ─────────────────────────────────── */
+.sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--gap);
+  margin-bottom: 1.5rem;
+}
+
+.sensor-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+}
+.sensor-label { font-size: .75rem; color: var(--text-muted); margin-bottom: .3rem; text-transform: uppercase; letter-spacing: .04em; }
+.sensor-value { font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
+.sensor-unit { font-size: .8rem; color: var(--text-muted); margin-top: .15rem; }
+
+/* ── Light panel ─────────────────────────────────── */
+.light-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+}
+.light-panel h2 { font-size: 1rem; margin-bottom: 1rem; }
+
+.light-controls { display: flex; align-items: flex-start; gap: 2rem; flex-wrap: wrap; }
+
+.mode-toggle { display: flex; align-items: center; }
+.toggle-label { display: flex; align-items: center; gap: .6rem; cursor: pointer; user-select: none; }
+.toggle-label input { display: none; }
+
+.toggle-track {
+  width: 44px; height: 24px;
+  background: var(--surface2);
+  border-radius: 99px;
+  position: relative;
+  transition: background .2s;
+}
+.toggle-label input:checked ~ .toggle-track { background: var(--accent); }
+.toggle-thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left .2s;
+}
+.toggle-label input:checked ~ .toggle-track .toggle-thumb { left: 23px; }
+
+.brightness-control { display: flex; flex-direction: column; gap: .5rem; }
+.brightness-control label { font-size: .9rem; color: var(--text-muted); }
+.brightness-control input[type=range] { width: 220px; accent-color: var(--accent); }
+
+/* ── Charts ──────────────────────────────────────── */
+.charts-section h2 { font-size: 1rem; margin-bottom: 1rem; }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
+.chart-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+@media (max-width: 700px) { .chart-row { grid-template-columns: 1fr; } }
+
+/* ── Edit form / settings panel ──────────────────── */
+.settings-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+.settings-panel summary { cursor: pointer; font-size: .9rem; color: var(--text-muted); }
+.edit-form { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; align-items: flex-end; }
+.edit-form label { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; color: var(--text-muted); }
+.edit-form input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .4rem .6rem;
+  color: var(--text);
+  font-size: .9rem;
+  width: 200px;
+}
+.edit-form input:focus { outline: none; border-color: var(--accent); }
+
+/* ── Buttons ─────────────────────────────────────── */
+.btn {
+  padding: .45rem 1rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: .9rem;
+  font-weight: 600;
+  transition: opacity .15s;
+}
+.btn:hover { opacity: .85; }
+.btn-primary { background: var(--accent); color: #fff; }
+
+/* ── Empty state ─────────────────────────────────── */
+.empty-state {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+.empty-state .hint { font-size: .85rem; margin-top: .5rem; }
