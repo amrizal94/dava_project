@@ -21,15 +21,14 @@ static void mqttCallback(char* topic, byte* payload, unsigned int len) {
   String t(topic);
   if (t != topicControlLight) return;
 
-  StaticJsonDocument<128> doc;
+  JsonDocument doc;
   if (deserializeJson(doc, payload, len)) return;
 
   String mode = doc["mode"] | "auto";
   int brightness = doc["brightness"] | 100;
   onLightCommand(mode, brightness);
 
-  // Send ack
-  StaticJsonDocument<64> ack;
+  JsonDocument ack;
   ack["mode"] = mode;
   ack["brightness"] = brightness;
   String ackStr;
@@ -72,8 +71,7 @@ static void mqttConnect() {
   Serial.println("connected");
   mqtt.subscribe(topicControlLight.c_str(), 1);
 
-  // Register device
-  StaticJsonDocument<128> reg;
+  JsonDocument reg;
   reg["alias"]    = _alias;
   reg["firmware"] = "1.0.0";
   String regStr;
@@ -90,16 +88,21 @@ void mqttLoop() {
 
 bool mqttConnected() { return mqtt.connected(); }
 
+static void setFloat(JsonDocument& doc, const char* key, float val) {
+  if (isnan(val)) doc[key] = nullptr;
+  else doc[key] = val;
+}
+
 void mqttPublishTelemetry(const SensorData& d) {
-  StaticJsonDocument<256> doc;
-  doc["temp_in"]      = isnan(d.tempIndoor)  ? nullptr : JsonVariant(d.tempIndoor);
-  doc["temp_out"]     = isnan(d.tempOutdoor) ? nullptr : JsonVariant(d.tempOutdoor);
-  doc["lux"]          = isnan(d.lux)         ? nullptr : JsonVariant(d.lux);
-  doc["voltage"]      = isnan(d.voltage)     ? nullptr : JsonVariant(d.voltage);
-  doc["current"]      = isnan(d.current)     ? nullptr : JsonVariant(d.current);
-  doc["power"]        = isnan(d.power)       ? nullptr : JsonVariant(d.power);
-  doc["frequency"]    = isnan(d.frequency)   ? nullptr : JsonVariant(d.frequency);
-  doc["power_factor"] = isnan(d.powerFactor) ? nullptr : JsonVariant(d.powerFactor);
+  JsonDocument doc;
+  setFloat(doc, "temp_in",      d.tempIndoor);
+  setFloat(doc, "temp_out",     d.tempOutdoor);
+  setFloat(doc, "lux",          d.lux);
+  setFloat(doc, "voltage",      d.voltage);
+  setFloat(doc, "current",      d.current);
+  setFloat(doc, "power",        d.power);
+  setFloat(doc, "frequency",    d.frequency);
+  setFloat(doc, "power_factor", d.powerFactor);
   doc["power_status"] = d.powerStatus;
 
   String out;
@@ -108,7 +111,7 @@ void mqttPublishTelemetry(const SensorData& d) {
 }
 
 void mqttPublishStatus() {
-  StaticJsonDocument<32> doc;
+  JsonDocument doc;
   doc["uptime"] = millis() / 1000;
   String out;
   serializeJson(doc, out);
