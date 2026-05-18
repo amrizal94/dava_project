@@ -12,10 +12,10 @@
 
 // ── Pin assignments (ESP32 DevKit V1) ─────────────────────────
 // DS18B20 indoor
-#define ONE_WIRE_INDOOR_PIN    4
+#define ONE_WIRE_INDOOR_PIN    18
 
 // DS18B20 outdoor
-#define ONE_WIRE_OUTDOOR_PIN   5
+#define ONE_WIRE_OUTDOOR_PIN   19
 
 // BH1750 — I2C default: SDA=21, SCL=22
 
@@ -24,10 +24,10 @@
 #define PZEM_TX_PIN   17
 
 // Relay / power status input (HIGH = ON)
-#define POWER_STATUS_PIN  18
+#define POWER_STATUS_PIN  4
 
 // Light PWM output (dimmer control)
-#define LIGHT_PWM_PIN     19
+#define LIGHT_PWM_PIN     5
 #define LIGHT_PWM_CHANNEL  0
 #define LIGHT_PWM_FREQ    5000
 #define LIGHT_PWM_RES     8      // 8-bit = 0-255
