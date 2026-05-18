@@ -3,8 +3,8 @@
 // ── MQTT ──────────────────────────────────────────────────────
 #define MQTT_HOST       "45.66.153.156"
 #define MQTT_PORT       1883
-#define MQTT_USERNAME   ""
-#define MQTT_PASSWORD   ""
+#define MQTT_USERNAME   "dava"
+#define MQTT_PASSWORD   "jsJSGiOuvHnMyEGHwPkkng"
 
 // ── Telemetry interval ────────────────────────────────────────
 #define TELEMETRY_INTERVAL_MS  10000UL   // 10 detik

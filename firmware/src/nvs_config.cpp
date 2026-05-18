@@ -4,7 +4,8 @@
 static Preferences prefs;
 
 DeviceConfig nvsLoad() {
-  prefs.begin("dava", true);
+  // Open read-write so namespace is created on first boot (avoids NOT_FOUND crash)
+  prefs.begin("dava", false);
   DeviceConfig cfg;
   cfg.alias    = prefs.getString("alias", "");
   cfg.ssid     = prefs.getString("ssid", "");
