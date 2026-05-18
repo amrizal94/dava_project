@@ -22,21 +22,33 @@ OFFLINE_THRESHOLD = int(os.getenv("OFFLINE_THRESHOLD_MINUTES", "5"))
 async def _mark_offline_loop():
     """Mark devices as offline if they haven't sent data."""
     from datetime import datetime, timezone, timedelta
-    from sqlalchemy import update
+    from sqlalchemy import select, update
     from .database import AsyncSessionLocal
     from .models import Device
+    from .mqtt_handler import _broadcast
 
     while True:
-        await asyncio.sleep(60)
+        await asyncio.sleep(30)
         try:
             threshold = datetime.now(timezone.utc) - timedelta(minutes=OFFLINE_THRESHOLD)
             async with AsyncSessionLocal() as db:
-                await db.execute(
-                    update(Device)
+                # Find devices that are online but haven't been seen recently
+                result = await db.execute(
+                    select(Device.mac_address)
                     .where(Device.is_online == True, Device.last_seen < threshold)
-                    .values(is_online=False)
                 )
-                await db.commit()
+                stale_macs = result.scalars().all()
+
+                if stale_macs:
+                    await db.execute(
+                        update(Device)
+                        .where(Device.mac_address.in_(stale_macs))
+                        .values(is_online=False)
+                    )
+                    await db.commit()
+                    for mac in stale_macs:
+                        _broadcast({"event": "device_offline", "mac": mac})
+                        logger.info(f"Device marked offline: {mac}")
         except Exception as e:
             logger.error(f"Offline check error: {e}")
 

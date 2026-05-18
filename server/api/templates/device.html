@@ -260,6 +260,10 @@ window.__sseHandlers.push(function(ev) {
     document.getElementById('status-badge').textContent = 'Online';
     document.getElementById('status-badge').className = 'badge badge-online';
   }
+  if (ev.event === 'device_offline') {
+    document.getElementById('status-badge').textContent = 'Offline';
+    document.getElementById('status-badge').className = 'badge badge-offline';
+  }
 });
 
 // ── Location map ──────────────────────────────────────────────

@@ -171,6 +171,11 @@
       const badge = card.querySelector('.badge');
       if (badge) { badge.textContent = 'Online'; badge.className = 'badge badge-online'; }
     }
+    if (ev.event === 'device_offline') {
+      card.classList.remove('online'); card.classList.add('offline');
+      const badge = card.querySelector('.badge');
+      if (badge) { badge.textContent = 'Offline'; badge.className = 'badge badge-offline'; }
+    }
   });
 </script>
 {% endblock %}
