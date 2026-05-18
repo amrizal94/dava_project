@@ -99,7 +99,19 @@ async def _handle_telemetry(mac: str, payload: dict):
         db.add(reading)
         await db.commit()
 
-    _broadcast({"event": "telemetry", "mac": mac, "data": payload})
+    sse_data = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "temp_indoor":    payload.get("temp_in"),
+        "temp_outdoor":   payload.get("temp_out"),
+        "lux":            payload.get("lux"),
+        "voltage":        payload.get("voltage"),
+        "current":        payload.get("current"),
+        "power":          payload.get("power"),
+        "frequency":      payload.get("frequency"),
+        "power_factor":   payload.get("power_factor"),
+        "power_status":   payload.get("power_status"),
+    }
+    _broadcast({"event": "telemetry", "mac": mac, "data": sse_data})
 
 
 async def _handle_status(mac: str, payload: dict):
