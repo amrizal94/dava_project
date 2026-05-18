@@ -37,18 +37,22 @@
 <div class="location-panel">
   <div class="location-header">
     <h2>Lokasi Device</h2>
-    <span id="coord-display" class="coord-text">
-      {% if device.latitude and device.longitude %}
-        {{ "%.6f"|format(device.latitude) }}, {{ "%.6f"|format(device.longitude) }}
-      {% else %}
-        Belum diset
-      {% endif %}
-    </span>
   </div>
-  <p class="map-hint">Klik pada peta untuk menentukan lokasi device ini.</p>
+  <div class="coord-inputs">
+    <label>Latitude
+      <input type="number" id="input-lat" step="any" placeholder="contoh: -6.200000"
+        value="{{ '%.6f'|format(device.latitude) if device.latitude else '' }}" />
+    </label>
+    <label>Longitude
+      <input type="number" id="input-lng" step="any" placeholder="contoh: 106.816666"
+        value="{{ '%.6f'|format(device.longitude) if device.longitude else '' }}" />
+    </label>
+    <button class="btn btn-primary" id="btn-goto-coord">Cari</button>
+  </div>
+  <p class="map-hint">Klik pada peta atau isi koordinat di atas untuk menentukan lokasi device.</p>
   <div id="device-map"></div>
   <div style="display:flex;gap:.5rem;margin-top:.75rem;align-items:center;flex-wrap:wrap">
-    <button class="btn btn-primary" id="btn-save-location" disabled>Simpan Lokasi</button>
+    <button class="btn btn-primary" id="btn-save-location" {% if not device.latitude or not device.longitude %}disabled{% endif %}>Simpan Lokasi</button>
     {% if device.latitude and device.longitude %}
     <button class="btn" id="btn-clear-location" style="background:var(--surface2);color:var(--text-muted)">Hapus Koordinat</button>
     {% endif %}
@@ -269,19 +273,41 @@ window.__sseHandlers.push(function(ev) {
 
   let marker = null;
   let pendingLat = null, pendingLng = null;
+  const inputLat = document.getElementById('input-lat');
+  const inputLng = document.getElementById('input-lng');
 
-  function placeMarker(lat, lng) {
+  function placeMarker(lat, lng, panTo = true) {
     if (marker) marker.remove();
     marker = L.marker([lat, lng]).addTo(map);
+    if (panTo) map.setView([lat, lng], Math.max(map.getZoom(), 13));
     pendingLat = lat; pendingLng = lng;
-    document.getElementById('coord-display').textContent =
-      lat.toFixed(6) + ', ' + lng.toFixed(6);
+    inputLat.value = lat.toFixed(6);
+    inputLng.value = lng.toFixed(6);
     document.getElementById('btn-save-location').disabled = false;
   }
 
-  if (initLat) placeMarker(initLat, initLng);
+  if (initLat) placeMarker(initLat, initLng, false);
 
   map.on('click', e => placeMarker(e.latlng.lat, e.latlng.lng));
+
+  document.getElementById('btn-goto-coord').addEventListener('click', () => {
+    const lat = parseFloat(inputLat.value);
+    const lng = parseFloat(inputLng.value);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      document.getElementById('location-msg').textContent = 'Koordinat tidak valid.';
+      document.getElementById('location-msg').style.color = 'var(--red)';
+      return;
+    }
+    document.getElementById('location-msg').textContent = '';
+    placeMarker(lat, lng);
+  });
+
+  // Allow pressing Enter in coordinate inputs
+  [inputLat, inputLng].forEach(el => {
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('btn-goto-coord').click();
+    });
+  });
 
   document.getElementById('btn-save-location').addEventListener('click', async () => {
     const msg = document.getElementById('location-msg');
@@ -304,7 +330,8 @@ window.__sseHandlers.push(function(ev) {
       });
       if (marker) { marker.remove(); marker = null; }
       pendingLat = pendingLng = null;
-      document.getElementById('coord-display').textContent = 'Belum diset';
+      inputLat.value = '';
+      inputLng.value = '';
       document.getElementById('btn-save-location').disabled = true;
       document.getElementById('location-msg').textContent = 'Koordinat dihapus.';
       btnClear.remove();

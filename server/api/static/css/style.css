@@ -227,6 +227,32 @@ body {
 .location-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; flex-wrap: wrap; gap: .5rem; }
 .location-header h2 { font-size: 1rem; }
 .coord-text { font-size: .8rem; color: var(--text-muted); font-family: monospace; }
+
+.coord-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin-bottom: .6rem;
+}
+.coord-inputs label {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  font-size: .8rem;
+  color: var(--text-muted);
+}
+.coord-inputs input[type=number] {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .35rem .6rem;
+  color: var(--text);
+  font-size: .85rem;
+  font-family: monospace;
+  width: 160px;
+}
+.coord-inputs input[type=number]:focus { outline: none; border-color: var(--accent); }
 #device-map {
   height: 320px;
   border-radius: 8px;
