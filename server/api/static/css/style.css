@@ -196,6 +196,14 @@ body {
 .btn:hover { opacity: .85; }
 .btn-primary { background: var(--accent); color: #fff; }
 
+/* ── Danger zone ─────────────────────────────────── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+.danger-zone { display: flex; flex-direction: column; gap: .4rem; }
+.danger-label { font-size: .85rem; font-weight: 600; color: var(--red); }
+.danger-hint { font-size: .8rem; color: var(--text-muted); }
+.btn-danger { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); align-self: flex-start; }
+.btn-danger:hover { background: var(--red); color: #fff; }
+
 /* ── Empty state ─────────────────────────────────── */
 .empty-state {
   background: var(--surface);

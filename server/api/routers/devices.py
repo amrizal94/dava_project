@@ -50,6 +50,16 @@ async def update_device(mac: str, body: DeviceUpdate, db: AsyncSession = Depends
     return _device_dict(device)
 
 
+@router.delete("/{mac}")
+async def delete_device(mac: str, db: AsyncSession = Depends(get_db)):
+    device = await db.get(Device, mac)
+    if not device:
+        raise HTTPException(404, "Device not found")
+    await db.delete(device)
+    await db.commit()
+    return {"status": "deleted", "mac_address": mac}
+
+
 @router.get("/{mac}/readings")
 async def get_readings(mac: str, limit: int = 100, db: AsyncSession = Depends(get_db)):
     result = await db.execute(

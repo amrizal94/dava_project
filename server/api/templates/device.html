@@ -25,6 +25,12 @@
     </label>
     <button type="submit" class="btn btn-primary">Simpan</button>
   </form>
+  <hr class="divider" />
+  <div class="danger-zone">
+    <span class="danger-label">Hapus Device</span>
+    <p class="danger-hint">Semua data sensor device ini akan ikut terhapus permanen.</p>
+    <button class="btn btn-danger" id="btn-delete">Hapus Device Ini</button>
+  </div>
 </details>
 
 <!-- Sensor cards row -->
@@ -222,6 +228,18 @@ window.__sseHandlers.push(function(ev) {
   if (ev.event === 'device_online' || ev.event === 'status') {
     document.getElementById('status-badge').textContent = 'Online';
     document.getElementById('status-badge').className = 'badge badge-online';
+  }
+});
+
+// ── Delete device ─────────────────────────────────────────────
+document.getElementById('btn-delete').addEventListener('click', async () => {
+  const name = document.getElementById('device-alias').textContent;
+  if (!confirm(`Hapus device "${name}"?\n\nSemua data sensor akan ikut terhapus permanen.`)) return;
+  const res = await fetch(`/api/devices/${MAC}`, { method: 'DELETE' });
+  if (res.ok) {
+    window.location.href = '/';
+  } else {
+    alert('Gagal menghapus device.');
   }
 });
 
