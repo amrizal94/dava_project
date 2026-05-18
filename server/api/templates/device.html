@@ -167,20 +167,24 @@ let labels = [], tempIn = [], tempOut = [], lux = [], volt = [], curr = [], pwr 
 
 function fmt(v, dec=1) { return v != null ? Number(v).toFixed(dec) : '—'; }
 
+function setCard(id, v, dec=1) {
+  if (v != null) document.getElementById(id).textContent = fmt(v, dec);
+}
+
 function updateCards(d) {
-  document.getElementById('val-temp-in').textContent = fmt(d.temp_indoor);
-  document.getElementById('val-temp-out').textContent = fmt(d.temp_outdoor);
-  document.getElementById('val-lux').textContent = fmt(d.lux, 0);
+  setCard('val-temp-in', d.temp_indoor);
+  setCard('val-temp-out', d.temp_outdoor);
+  setCard('val-lux', d.lux, 0);
   const ps = document.getElementById('val-power-status');
   if (d.power_status != null) {
     ps.textContent = d.power_status ? 'ON' : 'OFF';
     ps.style.color = d.power_status ? '#22c55e' : '#ef4444';
   }
-  document.getElementById('val-voltage').textContent = fmt(d.voltage);
-  document.getElementById('val-current').textContent = fmt(d.current, 2);
-  document.getElementById('val-power').textContent = fmt(d.power, 0);
-  document.getElementById('val-frequency').textContent = fmt(d.frequency);
-  document.getElementById('val-pf').textContent = fmt(d.power_factor, 2);
+  setCard('val-voltage', d.voltage);
+  setCard('val-current', d.current, 2);
+  setCard('val-power', d.power, 0);
+  setCard('val-frequency', d.frequency);
+  setCard('val-pf', d.power_factor, 2);
 }
 
 function initCharts() {
