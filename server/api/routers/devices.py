@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, desc
@@ -15,6 +16,10 @@ router = APIRouter(prefix="/api/devices", tags=["devices"])
 class DeviceUpdate(BaseModel):
     alias: str | None = None
     location: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+
+    model_config = {"extra": "ignore"}
 
 
 class LightCommand(BaseModel):
@@ -46,6 +51,11 @@ async def update_device(mac: str, body: DeviceUpdate, db: AsyncSession = Depends
         device.alias = body.alias
     if body.location is not None:
         device.location = body.location
+    # latitude/longitude bisa diset ke null (hapus koordinat)
+    if "latitude" in body.model_fields_set:
+        device.latitude = body.latitude
+    if "longitude" in body.model_fields_set:
+        device.longitude = body.longitude
     await db.commit()
     return _device_dict(device)
 
@@ -129,6 +139,8 @@ def _device_dict(d: Device) -> dict:
         "last_seen": d.last_seen.isoformat() if d.last_seen else None,
         "firmware_version": d.firmware_version,
         "created_at": d.created_at.isoformat(),
+        "latitude": d.latitude,
+        "longitude": d.longitude,
     }
 
 

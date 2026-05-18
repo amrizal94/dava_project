@@ -196,6 +196,44 @@ body {
 .btn:hover { opacity: .85; }
 .btn-primary { background: var(--accent); color: #fff; }
 
+/* ── Map ─────────────────────────────────────────── */
+#dashboard-map {
+  height: 460px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.map-hint { font-size: .8rem; color: var(--text-muted); margin: .5rem 0 0; }
+
+.view-toggle { display: flex; gap: .4rem; }
+.btn-view {
+  padding: .35rem .9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: .85rem;
+  transition: all .15s;
+}
+.btn-view.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.location-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+}
+.location-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; flex-wrap: wrap; gap: .5rem; }
+.location-header h2 { font-size: 1rem; }
+.coord-text { font-size: .8rem; color: var(--text-muted); font-family: monospace; }
+#device-map {
+  height: 320px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-top: .75rem;
+}
+
 /* ── Danger zone ─────────────────────────────────── */
 .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
 .danger-zone { display: flex; flex-direction: column; gap: .4rem; }

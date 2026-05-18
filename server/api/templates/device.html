@@ -33,6 +33,29 @@
   </div>
 </details>
 
+<!-- Location map -->
+<div class="location-panel">
+  <div class="location-header">
+    <h2>Lokasi Device</h2>
+    <span id="coord-display" class="coord-text">
+      {% if device.latitude and device.longitude %}
+        {{ "%.6f"|format(device.latitude) }}, {{ "%.6f"|format(device.longitude) }}
+      {% else %}
+        Belum diset
+      {% endif %}
+    </span>
+  </div>
+  <p class="map-hint">Klik pada peta untuk menentukan lokasi device ini.</p>
+  <div id="device-map"></div>
+  <div style="display:flex;gap:.5rem;margin-top:.75rem;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-primary" id="btn-save-location" disabled>Simpan Lokasi</button>
+    {% if device.latitude and device.longitude %}
+    <button class="btn" id="btn-clear-location" style="background:var(--surface2);color:var(--text-muted)">Hapus Koordinat</button>
+    {% endif %}
+    <span id="location-msg" style="font-size:.85rem;color:var(--text-muted)"></span>
+  </div>
+</div>
+
 <!-- Sensor cards row -->
 <div class="sensor-grid" id="sensor-grid">
   <div class="sensor-card" id="card-temp-in">
@@ -230,6 +253,64 @@ window.__sseHandlers.push(function(ev) {
     document.getElementById('status-badge').className = 'badge badge-online';
   }
 });
+
+// ── Location map ──────────────────────────────────────────────
+(function() {
+  const initLat = {{ device.latitude or 'null' }};
+  const initLng = {{ device.longitude or 'null' }};
+  const defaultCenter = initLat ? [initLat, initLng] : [-2.5, 118];
+  const defaultZoom  = initLat ? 13 : 5;
+
+  const map = L.map('device-map').setView(defaultCenter, defaultZoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom: 19,
+  }).addTo(map);
+
+  let marker = null;
+  let pendingLat = null, pendingLng = null;
+
+  function placeMarker(lat, lng) {
+    if (marker) marker.remove();
+    marker = L.marker([lat, lng]).addTo(map);
+    pendingLat = lat; pendingLng = lng;
+    document.getElementById('coord-display').textContent =
+      lat.toFixed(6) + ', ' + lng.toFixed(6);
+    document.getElementById('btn-save-location').disabled = false;
+  }
+
+  if (initLat) placeMarker(initLat, initLng);
+
+  map.on('click', e => placeMarker(e.latlng.lat, e.latlng.lng));
+
+  document.getElementById('btn-save-location').addEventListener('click', async () => {
+    const msg = document.getElementById('location-msg');
+    const res = await fetch(`/api/devices/${MAC}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: pendingLat, longitude: pendingLng }),
+    });
+    msg.textContent = res.ok ? 'Koordinat tersimpan.' : 'Gagal menyimpan.';
+    msg.style.color = res.ok ? 'var(--green)' : 'var(--red)';
+  });
+
+  const btnClear = document.getElementById('btn-clear-location');
+  if (btnClear) {
+    btnClear.addEventListener('click', async () => {
+      await fetch(`/api/devices/${MAC}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: null, longitude: null }),
+      });
+      if (marker) { marker.remove(); marker = null; }
+      pendingLat = pendingLng = null;
+      document.getElementById('coord-display').textContent = 'Belum diset';
+      document.getElementById('btn-save-location').disabled = true;
+      document.getElementById('location-msg').textContent = 'Koordinat dihapus.';
+      btnClear.remove();
+    });
+  }
+})();
 
 // ── Delete device ─────────────────────────────────────────────
 document.getElementById('btn-delete').addEventListener('click', async () => {
