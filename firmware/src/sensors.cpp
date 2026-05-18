@@ -18,6 +18,11 @@ static PZEM004Tv30     pzem(Serial2, PZEM_RX_PIN, PZEM_TX_PIN);
 void sensorsInit() {
   dsIndoor.begin();
   dsOutdoor.begin();
+  // Request conversion upfront so first read is ready
+  dsIndoor.setWaitForConversion(false);
+  dsOutdoor.setWaitForConversion(false);
+  dsIndoor.requestTemperatures();
+  dsOutdoor.requestTemperatures();
 
   Wire.begin();
   bh1750.begin(BH1750::CONTINUOUS_HIGH_RES_MODE);
@@ -27,18 +32,26 @@ void sensorsInit() {
   Serial.println("[Sensors] Init done.");
 }
 
+static void requestTempAsync() {
+  dsIndoor.requestTemperatures();
+  dsOutdoor.requestTemperatures();
+}
+
+static inline bool isTempValid(float t) {
+  return !isnan(t) && t != DEVICE_DISCONNECTED_C && t != 85.0f && t > -55.0f && t < 125.0f;
+}
+
 SensorData sensorsRead() {
   SensorData d{};
 
-  // DS18B20 indoor
-  dsIndoor.requestTemperatures();
-  d.tempIndoor = dsIndoor.getTempCByIndex(0);
-  if (d.tempIndoor == DEVICE_DISCONNECTED_C) d.tempIndoor = NAN;
+  // DS18B20 — read result from previous async request
+  float ti = dsIndoor.getTempCByIndex(0);
+  float to = dsOutdoor.getTempCByIndex(0);
+  d.tempIndoor  = isTempValid(ti) ? ti : NAN;
+  d.tempOutdoor = isTempValid(to) ? to : NAN;
 
-  // DS18B20 outdoor
-  dsOutdoor.requestTemperatures();
-  d.tempOutdoor = dsOutdoor.getTempCByIndex(0);
-  if (d.tempOutdoor == DEVICE_DISCONNECTED_C) d.tempOutdoor = NAN;
+  // Kick off next conversion immediately (ready by next sensorsRead call)
+  requestTempAsync();
 
   // BH1750
   d.lux = bh1750.readLightLevel();
