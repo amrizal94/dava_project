@@ -31,7 +31,7 @@ void sensorsInit() {
   // Inisialisasi Serial2 secara eksplisit sebelum membuat objek PZEM
   Serial2.begin(9600, SERIAL_8N1, PZEM_RX_PIN, PZEM_TX_PIN);
   delay(100);
-  pzem = new PZEM004Tv30(Serial2);
+  pzem = new PZEM004Tv30(Serial2, PZEM_RX_PIN, PZEM_TX_PIN);
 
   Serial.println("[Sensors] Init done.");
 }
