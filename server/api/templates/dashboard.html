@@ -68,9 +68,9 @@
     localStorage.setItem('dava-view', v);
   }
 
-  // Restore last view
+  // Restore last view — defer map init so browser finishes layout first
   const savedView = localStorage.getItem('dava-view') || 'card';
-  if (savedView === 'map') setView('map');
+  if (savedView === 'map') setTimeout(() => setView('map'), 0);
 
   // ── Time-ago labels ───────────────────────────────────────────
   function updateTimeAgo() {
@@ -159,6 +159,9 @@
     if (bounds.length > 0) {
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
     }
+
+    // Force Leaflet to recalculate container size after browser paint
+    setTimeout(() => map.invalidateSize(), 100);
   }
 
   // ── SSE: update kartu & markers ───────────────────────────────
