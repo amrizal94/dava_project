@@ -294,7 +294,11 @@ window.__sseHandlers.push(function(ev) {
     document.getElementById('btn-save-location').disabled = false;
   }
 
-  if (initLat) placeMarker(initLat, initLng, false);
+  // Tunggu browser selesai render sebelum menempatkan marker
+  requestAnimationFrame(() => {
+    map.invalidateSize();
+    if (initLat) placeMarker(initLat, initLng, false);
+  });
 
   map.on('click', e => placeMarker(e.latlng.lat, e.latlng.lng));
 
