@@ -47,12 +47,18 @@ def _broadcast(event: dict):
 
 async def _handle_register(mac: str, payload: dict):
     async with AsyncSessionLocal() as db:
+        existing = await db.get(Device, mac)
+        # Jangan re-register device yang sudah dihapus
+        if existing and existing.is_deleted:
+            return
+
         stmt = insert(Device).values(
             mac_address=mac,
             alias=payload.get("alias", ""),
             location=payload.get("location", ""),
             firmware_version=payload.get("firmware", ""),
             is_online=True,
+            is_deleted=False,
             last_seen=datetime.now(timezone.utc),
         ).on_conflict_do_update(
             index_elements=["mac_address"],
@@ -65,8 +71,8 @@ async def _handle_register(mac: str, payload: dict):
         await db.execute(stmt)
 
         # Create default settings if not exist
-        existing = await db.get(DeviceSettings, mac)
-        if not existing:
+        settings = await db.get(DeviceSettings, mac)
+        if not settings:
             db.add(DeviceSettings(device_mac=mac))
 
         await db.commit()
@@ -77,7 +83,10 @@ async def _handle_register(mac: str, payload: dict):
 
 async def _handle_telemetry(mac: str, payload: dict):
     async with AsyncSessionLocal() as db:
-        # Upsert device online status
+        device = await db.get(Device, mac)
+        if not device or device.is_deleted:
+            return
+
         await db.execute(
             update(Device)
             .where(Device.mac_address == mac)
@@ -116,6 +125,9 @@ async def _handle_telemetry(mac: str, payload: dict):
 
 async def _handle_status(mac: str, payload: dict):
     async with AsyncSessionLocal() as db:
+        device = await db.get(Device, mac)
+        if not device or device.is_deleted:
+            return
         await db.execute(
             update(Device)
             .where(Device.mac_address == mac)

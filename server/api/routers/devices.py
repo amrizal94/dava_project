@@ -65,7 +65,9 @@ async def delete_device(mac: str, db: AsyncSession = Depends(get_db)):
     device = await db.get(Device, mac)
     if not device:
         raise HTTPException(404, "Device not found")
-    await db.delete(device)
+    # Soft delete — record tetap ada di DB untuk mencegah device re-register via MQTT
+    device.is_deleted = True
+    device.is_online = False
     await db.commit()
     return {"status": "deleted", "mac_address": mac}
 

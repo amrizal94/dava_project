@@ -294,11 +294,11 @@ window.__sseHandlers.push(function(ev) {
     document.getElementById('btn-save-location').disabled = false;
   }
 
-  // Tunggu browser selesai render sebelum menempatkan marker
-  requestAnimationFrame(() => {
+  // Tunggu browser selesai render dan tiles mulai load sebelum menempatkan marker
+  setTimeout(() => {
     map.invalidateSize();
     if (initLat) placeMarker(initLat, initLng, false);
-  });
+  }, 300);
 
   map.on('click', e => placeMarker(e.latlng.lat, e.latlng.lng));
 

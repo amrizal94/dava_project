@@ -28,3 +28,7 @@ async def init_db():
             "END $$"
         ))
         await conn.run_sync(Base.metadata.create_all)
+        # Migrasi kolom is_deleted untuk database yang sudah ada
+        await conn.execute(text(
+            "ALTER TABLE devices ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE"
+        ))

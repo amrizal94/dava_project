@@ -17,7 +17,7 @@ templates.env.globals["static_v"] = str(int(time.time()))
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Device).order_by(Device.created_at))
+    result = await db.execute(select(Device).where(Device.is_deleted == False).order_by(Device.created_at))
     devices = result.scalars().all()
     return templates.TemplateResponse("dashboard.html", {"request": request, "devices": devices})
 
