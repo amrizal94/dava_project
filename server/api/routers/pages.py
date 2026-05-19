@@ -1,3 +1,5 @@
+import time
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -9,6 +11,8 @@ from ..models import Device, DeviceSettings
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="api/templates")
+# Dipakai di base.html untuk cache busting CSS/JS saat server restart
+templates.env.globals["static_v"] = str(int(time.time()))
 
 
 @router.get("/", response_class=HTMLResponse)

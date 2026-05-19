@@ -1,13 +1,15 @@
 import asyncio
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from .database import init_db
 from .mqtt_handler import start_mqtt
@@ -62,8 +64,20 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Dava Monitoring", lifespan=lifespan)
+app = FastAPI(title="Power System Monitor", lifespan=lifespan)
 
+
+class NoCacheHTMLMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        if "text/html" in response.headers.get("content-type", ""):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
+
+app.add_middleware(NoCacheHTMLMiddleware)
 app.mount("/static", StaticFiles(directory="api/static"), name="static")
 
 app.include_router(pages.router)
