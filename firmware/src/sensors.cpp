@@ -26,8 +26,6 @@ void sensorsInit() {
   Wire.begin();
   bh1750.begin(BH1750::CONTINUOUS_HIGH_RES_MODE);
 
-  pinMode(POWER_STATUS_PIN, INPUT);
-
   // Inisialisasi Serial2 secara eksplisit sebelum membuat objek PZEM
   Serial2.begin(9600, SERIAL_8N1, PZEM_RX_PIN, PZEM_TX_PIN);
   delay(100);
@@ -60,8 +58,8 @@ SensorData sensorsRead() {
     d.powerFactor = pzem->pf();
   }
 
-  // Power status relay
-  d.powerStatus = digitalRead(POWER_STATUS_PIN) == HIGH;
+  // Power status: true jika PZEM mendeteksi tegangan > 0
+  d.powerStatus = !isnan(d.voltage) && d.voltage > 0.0f;
 
   d.valid = true;
   return d;
