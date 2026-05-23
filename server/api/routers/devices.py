@@ -143,6 +143,7 @@ def _device_dict(d: Device) -> dict:
         "created_at": d.created_at.isoformat(),
         "latitude": d.latitude,
         "longitude": d.longitude,
+        "power_status": d.power_status,
     }
 
 

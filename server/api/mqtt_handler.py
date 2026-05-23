@@ -87,10 +87,15 @@ async def _handle_telemetry(mac: str, payload: dict):
         if not device or device.is_deleted:
             return
 
+        power_status = payload.get("power_status")
         await db.execute(
             update(Device)
             .where(Device.mac_address == mac)
-            .values(is_online=True, last_seen=datetime.now(timezone.utc))
+            .values(
+                is_online=True,
+                last_seen=datetime.now(timezone.utc),
+                power_status=power_status,
+            )
         )
 
         reading = SensorReading(

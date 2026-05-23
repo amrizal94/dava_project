@@ -22,6 +22,7 @@ class Device(Base):
     firmware_version: Mapped[str] = mapped_column(String(32), default="")
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    power_status: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 

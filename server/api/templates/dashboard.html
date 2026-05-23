@@ -28,12 +28,21 @@
 <div id="view-card">
   <div class="device-grid" id="device-grid">
     {% for device in devices %}
-    <a href="/device/{{ device.mac_address }}" class="device-card {% if device.is_online %}online{% else %}offline{% endif %}" data-mac="{{ device.mac_address }}">
+    {% set power_warn = device.is_online and device.power_status is not none and not device.power_status %}
+    <a href="/device/{{ device.mac_address }}"
+       class="device-card {% if power_warn %}power-warning{% elif device.is_online %}online{% else %}offline{% endif %}"
+       data-mac="{{ device.mac_address }}"
+       data-power="{{ device.power_status | tojson }}">
       <div class="card-header">
         <span class="device-name">{{ device.alias or device.mac_address }}</span>
-        <span class="badge {% if device.is_online %}badge-online{% else %}badge-offline{% endif %}">
-          {{ "Online" if device.is_online else "Offline" }}
-        </span>
+        <div class="card-badges">
+          <span class="badge {% if device.is_online %}badge-online{% else %}badge-offline{% endif %}">
+            {{ "Online" if device.is_online else "Offline" }}
+          </span>
+          {% if power_warn %}
+          <span class="badge badge-warning">⚡ Listrik Mati</span>
+          {% endif %}
+        </div>
       </div>
       <div class="card-location">{{ device.location or "—" }}</div>
       <div class="card-meta">
@@ -95,16 +104,72 @@
       lat: {{ d.latitude }},
       lng: {{ d.longitude }},
       online: {{ "true" if d.is_online else "false" }},
+      power_status: {{ d.power_status | tojson }},
       last_seen: {{ (d.last_seen.isoformat() if d.last_seen else "")|tojson }},
     },
     {% endif %}
     {% endfor %}
   ];
 
+  // Simpan referensi marker per MAC untuk update real-time via SSE
+  const _mapMarkers = {};
+
+  function _markerColor(online, power_status) {
+    if (!online) return '#ef4444';                     // merah — device offline
+    if (power_status === false) return '#eab308';      // kuning — online tapi listrik mati
+    return '#22c55e';                                  // hijau — normal
+  }
+
+  function _markerIcon(online, power_status) {
+    const color = _markerColor(online, power_status);
+    const warn  = online && power_status === false;
+    return L.divIcon({
+      className: '',
+      html: warn
+        ? `<div style="
+            width:20px;height:20px;border-radius:50%;
+            background:${color};border:2px solid #fff;
+            box-shadow:0 0 8px ${color}aa;
+            display:flex;align-items:center;justify-content:center;
+            font-size:11px;line-height:1;color:#fff;font-weight:700;
+          ">!</div>`
+        : `<div style="
+            width:14px;height:14px;border-radius:50%;
+            background:${color};border:2px solid #fff;
+            box-shadow:0 0 6px ${color}88;
+          "></div>`,
+      iconSize:   warn ? [20, 20] : [14, 14],
+      iconAnchor: warn ? [10, 10] : [7, 7],
+    });
+  }
+
+  function _popupHtml(d) {
+    const lastSeen = d.last_seen ? new Date(d.last_seen).toLocaleString('id-ID') : '—';
+    const connColor  = d.online ? { bg: '#dcfce7', fg: '#16a34a', label: 'Online' }
+                                : { bg: '#fee2e2', fg: '#dc2626', label: 'Offline' };
+    const powerWarn  = d.online && d.power_status === false;
+    return `
+      <div style="min-width:160px;font-family:system-ui,sans-serif">
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:.3rem">${d.alias}</div>
+        <div style="font-size:.8rem;color:#666;margin-bottom:.5rem">${d.location || '—'}</div>
+        <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.5rem">
+          <span style="display:inline-block;padding:.15rem .5rem;border-radius:99px;font-size:.75rem;font-weight:600;
+            background:${connColor.bg};color:${connColor.fg}">${connColor.label}</span>
+          ${powerWarn ? `<span style="display:inline-block;padding:.15rem .5rem;border-radius:99px;font-size:.75rem;font-weight:600;
+            background:#fef9c3;color:#a16207">⚡ Listrik Mati</span>` : ''}
+        </div>
+        <div style="font-size:.75rem;color:#888;margin-bottom:.6rem">Terakhir: ${lastSeen}</div>
+        <a href="/device/${d.mac}" style="
+          display:block;text-align:center;padding:.3rem .6rem;
+          background:#3b82f6;color:#fff;border-radius:6px;
+          font-size:.8rem;font-weight:600;text-decoration:none;
+        ">Lihat Detail →</a>
+      </div>`;
+  }
+
   function initMap() {
     window._mapInited = true;
 
-    // Default center: Indonesia
     const defaultCenter = [-2.5, 118];
     const map = L.map('dashboard-map').setView(defaultCenter, 5);
 
@@ -116,43 +181,9 @@
     const bounds = [];
 
     DEVICES.forEach(d => {
-      const color = d.online ? '#22c55e' : '#ef4444';
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="
-          width:14px;height:14px;border-radius:50%;
-          background:${color};border:2px solid #fff;
-          box-shadow:0 0 6px ${color}88;
-        "></div>`,
-        iconSize: [14, 14],
-        iconAnchor: [7, 7],
-      });
-
-      const lastSeen = d.last_seen
-        ? new Date(d.last_seen).toLocaleString('id-ID')
-        : '—';
-
-      const marker = L.marker([d.lat, d.lng], { icon }).addTo(map);
-      marker.bindPopup(`
-        <div style="min-width:160px;font-family:system-ui,sans-serif">
-          <div style="font-weight:700;font-size:.95rem;margin-bottom:.3rem">${d.alias}</div>
-          <div style="font-size:.8rem;color:#666;margin-bottom:.5rem">${d.location || '—'}</div>
-          <div style="margin-bottom:.5rem">
-            <span style="
-              display:inline-block;padding:.15rem .5rem;border-radius:99px;font-size:.75rem;font-weight:600;
-              background:${d.online ? '#dcfce7' : '#fee2e2'};
-              color:${d.online ? '#16a34a' : '#dc2626'};
-            ">${d.online ? 'Online' : 'Offline'}</span>
-          </div>
-          <div style="font-size:.75rem;color:#888;margin-bottom:.6rem">Terakhir: ${lastSeen}</div>
-          <a href="/device/${d.mac}" style="
-            display:block;text-align:center;padding:.3rem .6rem;
-            background:#3b82f6;color:#fff;border-radius:6px;
-            font-size:.8rem;font-weight:600;text-decoration:none;
-          ">Lihat Detail →</a>
-        </div>
-      `);
-
+      const marker = L.marker([d.lat, d.lng], { icon: _markerIcon(d.online, d.power_status) }).addTo(map);
+      marker.bindPopup(_popupHtml(d));
+      _mapMarkers[d.mac] = { marker, data: d };
       bounds.push([d.lat, d.lng]);
     });
 
@@ -165,19 +196,57 @@
   }
 
   // ── SSE: update kartu & markers ───────────────────────────────
+  function _updateCard(card, online, power_status) {
+    const powerWarn = online && power_status === false;
+    card.classList.toggle('online',        online && !powerWarn);
+    card.classList.toggle('offline',       !online);
+    card.classList.toggle('power-warning', powerWarn);
+
+    const connBadge = card.querySelector('.badge-online, .badge-offline');
+    if (connBadge) {
+      connBadge.textContent = online ? 'Online' : 'Offline';
+      connBadge.className   = 'badge ' + (online ? 'badge-online' : 'badge-offline');
+    }
+
+    let warnBadge = card.querySelector('.badge-warning');
+    if (powerWarn) {
+      if (!warnBadge) {
+        warnBadge = document.createElement('span');
+        warnBadge.className = 'badge badge-warning';
+        warnBadge.textContent = '⚡ Listrik Mati';
+        const badges = card.querySelector('.card-badges');
+        if (badges) badges.appendChild(warnBadge);
+      }
+    } else if (warnBadge) {
+      warnBadge.remove();
+    }
+  }
+
+  function _updateMapMarker(mac, online, power_status) {
+    const m = _mapMarkers[mac];
+    if (!m) return;
+    m.data.online = online;
+    m.data.power_status = power_status;
+    m.marker.setIcon(_markerIcon(online, power_status));
+    m.marker.setPopupContent(_popupHtml(m.data));
+  }
+
   window.__sseHandlers = window.__sseHandlers || [];
   window.__sseHandlers.push(function(ev) {
     const card = document.querySelector(`.device-card[data-mac="${ev.mac}"]`);
-    if (!card) return;
-    if (['device_online','telemetry','status'].includes(ev.event)) {
-      card.classList.remove('offline'); card.classList.add('online');
-      const badge = card.querySelector('.badge');
-      if (badge) { badge.textContent = 'Online'; badge.className = 'badge badge-online'; }
+
+    if (ev.event === 'telemetry') {
+      const ps = ev.data ? ev.data.power_status : undefined;
+      if (card) _updateCard(card, true, ps);
+      _updateMapMarker(ev.mac, true, ps);
+    }
+    if (['device_online', 'status'].includes(ev.event)) {
+      if (card) _updateCard(card, true, card.dataset.power === 'false' ? false : null);
+      _updateMapMarker(ev.mac, true, _mapMarkers[ev.mac]?.data.power_status);
     }
     if (ev.event === 'device_offline') {
-      card.classList.remove('online'); card.classList.add('offline');
-      const badge = card.querySelector('.badge');
-      if (badge) { badge.textContent = 'Offline'; badge.className = 'badge badge-offline'; }
+      if (card) _updateCard(card, false, null);
+      _updateMapMarker(ev.mac, false, null);
     }
   });
 </script>

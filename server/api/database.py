@@ -32,3 +32,7 @@ async def init_db():
         await conn.execute(text(
             "ALTER TABLE devices ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE"
         ))
+        # Migrasi kolom power_status untuk database yang sudah ada
+        await conn.execute(text(
+            "ALTER TABLE devices ADD COLUMN IF NOT EXISTS power_status BOOLEAN"
+        ))
